@@ -73,12 +73,11 @@
     max-width:640px;
   }
 
-  /* shared ticket component */
   .ticket{
     display:flex;
     border:1px solid var(--border);
     background:var(--surface);
-    border-radius:2px;
+    border-radius:16px;
     overflow:hidden;
   }
   .ticket-stub{
@@ -140,10 +139,10 @@
     margin:0 0 16px;
   }
 
-  /* tier cards, same ticket shell, different stub color + stepper */
   .tier-ticket{
     margin-bottom:14px;
     align-items:stretch;
+    transition:border-color .15s ease;
   }
   .tier-ticket.disabled{opacity:0.4;}
   .tier-ticket .ticket-body{
@@ -179,7 +178,7 @@
     display:flex;
     align-items:center;
     border:1px solid var(--border-strong);
-    border-radius:2px;
+    border-radius:10px;
   }
   .stepper button{
     width:32px; height:32px;
@@ -190,7 +189,10 @@
     font-size:16px;
     cursor:pointer;
   }
-  .stepper button:hover{background:var(--surface-2);}
+  .stepper button:first-child{border-radius:10px 0 0 10px;}
+  .stepper button:last-child{border-radius:0 10px 10px 0;}
+  .stepper button:hover:not(:disabled){background:var(--surface-2);}
+  .stepper button:disabled{color:var(--text-muted); cursor:not-allowed;}
   .stepper span{
     width:28px;
     text-align:center;
@@ -209,9 +211,24 @@
   }
   .note .dot-inline{color:var(--accent);}
 
-  /* summary ticket, matches confirmation page exactly */
   .summary-ticket .ticket-stub{background:var(--accent);}
   .summary-ticket .ticket-body{padding:24px 26px;}
+
+  .line-items{margin-bottom:4px;}
+  .line-item{
+    display:flex;
+    justify-content:space-between;
+    font-size:13px;
+    color:var(--text-muted);
+    margin-bottom:8px;
+    font-family:var(--mono);
+  }
+  .line-item span:last-child{color:var(--text);}
+  .empty-cart{
+    font-family:var(--mono);
+    font-size:13px;
+    color:var(--text-muted);
+  }
 
   .perforation-h{
     border-top:2px dashed var(--border-strong);
@@ -253,14 +270,21 @@
     font-weight:600;
     font-size:15px;
     text-align:center;
-    border-radius:2px;
+    border-radius:12px;
     cursor:pointer;
     margin-bottom:16px;
+    transition:filter .15s ease, opacity .15s ease;
   }
   .cta:hover{filter:brightness(1.08);}
+  .cta.disabled{
+    pointer-events:none;
+    background:var(--surface-2);
+    color:var(--text-muted);
+  }
 
   .barcode{
     height:32px;
+    border-radius:4px;
     background-image:repeating-linear-gradient(90deg, var(--text) 0 2px, transparent 2px 5px);
     opacity:0.6;
   }
@@ -278,7 +302,7 @@
   .fair-axs .tag{
     border:1px solid var(--border-strong);
     padding:2px 6px;
-    border-radius:2px;
+    border-radius:6px;
     color:var(--text);
   }
 </style>
@@ -311,7 +335,7 @@
 
   <p class="section-label">Choose your tier</p>
 
-  <div class="ticket tier-ticket">
+  <div class="ticket tier-ticket" data-tier="ga" data-name="General admission" data-price="800">
     <div class="ticket-stub" style="background:var(--tag-amber);">GA</div>
     <div class="ticket-body">
       <div class="tier-main">
@@ -321,15 +345,15 @@
       <div class="tier-right">
         <div class="tier-price">৳ 800</div>
         <div class="stepper">
-          <button aria-label="decrease">−</button>
-          <span>0</span>
-          <button aria-label="increase">+</button>
+          <button type="button" class="dec" aria-label="decrease">−</button>
+          <span class="qty">0</span>
+          <button type="button" class="inc" aria-label="increase">+</button>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="ticket tier-ticket">
+  <div class="ticket tier-ticket" data-tier="ee" data-name="Early entry" data-price="1200">
     <div class="ticket-stub" style="background:var(--tag-pink);">EE</div>
     <div class="ticket-body">
       <div class="tier-main">
@@ -339,15 +363,15 @@
       <div class="tier-right">
         <div class="tier-price">৳ 1,200</div>
         <div class="stepper">
-          <button aria-label="decrease">−</button>
-          <span>1</span>
-          <button aria-label="increase">+</button>
+          <button type="button" class="dec" aria-label="decrease">−</button>
+          <span class="qty">1</span>
+          <button type="button" class="inc" aria-label="increase">+</button>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="ticket tier-ticket disabled">
+  <div class="ticket tier-ticket disabled" data-tier="br" data-name="Balcony reserved" data-price="1600">
     <div class="ticket-stub" style="background:var(--tag-teal);">BR</div>
     <div class="ticket-body">
       <div class="tier-main">
@@ -368,25 +392,110 @@
     <div class="ticket-stub">YOUR TICKET</div>
     <div class="ticket-body">
       <p class="ticket-event">Kaaktaal — Live</p>
-      <p class="ticket-venue">Early entry × 1 · Aug 14, 2026</p>
+      <p class="ticket-venue" id="summary-sub">Early entry × 1 · Aug 14, 2026</p>
 
-      <div class="ticket-grid" style="grid-template-columns:1fr 1fr; margin-bottom:0;">
-        <div class="ticket-field"><p class="k">Ticket</p><p class="v">৳ 1,200</p></div>
-        <div class="ticket-field"><p class="k">Fair AXS + venue fee</p><p class="v">৳ 100</p></div>
-      </div>
+      <div class="line-items" id="line-items"></div>
 
       <div class="perforation-h"></div>
 
       <div class="total-row">
         <span class="label">Total</span>
-        <span class="amount">৳ 1,300</span>
+        <span class="amount" id="total-amount">৳ 0</span>
       </div>
-      <a class="cta" href="confirmation.html">Continue to payment</a>
+      <a href="#" id="cta-btn" class="cta disabled">Continue to payment</a>
       <div class="barcode"></div>
       <div class="fair-axs"><span class="tag">Fair AXS</span> verified checkout</div>
     </div>
   </div>
 
 </div>
+
+<script>
+  var FEE_PER_TICKET = 100;
+  var tiers = Array.prototype.slice.call(document.querySelectorAll('.tier-ticket:not(.disabled)'));
+  var lineItemsEl = document.getElementById('line-items');
+  var totalEl = document.getElementById('total-amount');
+  var subEl = document.getElementById('summary-sub');
+  var ctaBtn = document.getElementById('cta-btn');
+
+  function fmt(n){
+    return '৳ ' + n.toLocaleString('en-US');
+  }
+
+  function recalc(){
+    var lines = [];
+    var subtotal = 0;
+    var totalQty = 0;
+    tiers.forEach(function(tier){
+      var qty = parseInt(tier.querySelector('.qty').textContent, 10);
+      if(qty > 0){
+        var price = parseInt(tier.dataset.price, 10);
+        subtotal += price * qty;
+        totalQty += qty;
+        lines.push({ name: tier.dataset.name, qty: qty, price: price, lineTotal: price * qty });
+      }
+    });
+
+    if(lines.length === 0){
+      lineItemsEl.innerHTML = '<p class="empty-cart">No tickets selected yet.</p>';
+      subEl.textContent = 'Kaaktaal — Live · Aug 14, 2026';
+      totalEl.textContent = fmt(0);
+      ctaBtn.classList.add('disabled');
+      return;
+    }
+
+    var fees = FEE_PER_TICKET * totalQty;
+    var total = subtotal + fees;
+
+    lineItemsEl.innerHTML = lines.map(function(l){
+      return '<div class="line-item"><span>' + l.name + ' × ' + l.qty + '</span><span>' + fmt(l.lineTotal) + '</span></div>';
+    }).join('') + '<div class="line-item"><span>Fair AXS + venue fee</span><span>' + fmt(fees) + '</span></div>';
+
+    subEl.textContent = lines.map(function(l){ return l.name + ' × ' + l.qty; }).join(', ') + ' · Aug 14, 2026';
+    totalEl.textContent = fmt(total);
+    ctaBtn.classList.remove('disabled');
+
+    ctaBtn.dataset.order = JSON.stringify({
+      event: 'Kaaktaal — Live',
+      venue: 'Gulshan Society Hall, Dhaka',
+      date: 'Aug 14, 2026',
+      doors: '7:00 PM',
+      lines: lines,
+      fees: fees,
+      total: total
+    });
+  }
+
+  tiers.forEach(function(tier){
+    var qtyEl = tier.querySelector('.qty');
+    tier.querySelector('.inc').addEventListener('click', function(){
+      var qty = parseInt(qtyEl.textContent, 10);
+      if(qty < 4){
+        qtyEl.textContent = qty + 1;
+        recalc();
+      }
+    });
+    tier.querySelector('.dec').addEventListener('click', function(){
+      var qty = parseInt(qtyEl.textContent, 10);
+      if(qty > 0){
+        qtyEl.textContent = qty - 1;
+        recalc();
+      }
+    });
+  });
+
+  ctaBtn.addEventListener('click', function(e){
+    e.preventDefault();
+    if(ctaBtn.classList.contains('disabled')) return;
+    var order = ctaBtn.dataset.order;
+    if(order){
+      localStorage.setItem('ashor_order', order);
+    }
+    window.location.href = 'confirmation.html';
+  });
+
+  recalc();
+</script>
+
 </body>
 </html>
